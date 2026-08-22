@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Needed to list installed apps in the picker. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:enableOnBackInvokedCallback="true"
+        android:theme="@style/Theme.Ratt">
+
+        <activity
+            android:name=".SetupActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Ratt">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            Its own task affinity so it never merges into the target app's task,
+            and it stays out of recents so it does not look like a real screen.
+        -->
+        <activity
+            android:name=".InterstitialActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity=".interstitial"
+            android:excludeFromRecents="true"
+            android:screenOrientation="portrait"
+            android:configChanges="keyboardHidden|navigation|orientation|screenSize|screenLayout|uiMode"
+            android:theme="@style/Theme.Ratt.Interstitial" />
+
+        <service
+            android:name=".RattAccessibilityService"
+            android:exported="true"
+            android:label="@string/service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+    </application>
+
+</manifest>

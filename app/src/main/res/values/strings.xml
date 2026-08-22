@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dopamine Ratt</string>
+    <string name="service_label">Dopamine Ratt</string>
+    <string name="service_description">Notices when you open Instagram and shows you a rat with a placard before you get in. It reads only the package name of the app in front, never the contents of your screen.</string>
+</resources>

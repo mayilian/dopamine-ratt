@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Ratt" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#12100F</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.Ratt.Interstitial" parent="Theme.Ratt">
+        <item name="android:windowAnimationStyle">@style/Anim.Ratt</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
+
+    <style name="Anim.Ratt" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@android:anim/fade_in</item>
+        <item name="android:activityCloseExitAnimation">@android:anim/fade_out</item>
+    </style>
+</resources>

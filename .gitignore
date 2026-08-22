@@ -1,0 +1,12 @@
+build/
+.gradle/
+app/build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+
+# Signing material: losing these means friends can never update in place.
+# Keep a backup somewhere safe, but never commit them.
+*.jks
+keystore.properties
