@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dopamine Ratt — Privacy Policy</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 6rem;
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #ffffff;
+    color: #1c1c1e;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #08070a; color: #e9e6e2; }
+    code { background: #1c1a20; }
+    th { border-color: #33303a !important; }
+    td { border-color: #26242c !important; }
+    .rule { background: #26242c; }
+  }
+  h1 { font-size: 1.9rem; letter-spacing: -0.02em; margin: 0 0 0.25rem; }
+  h2 { font-size: 1.15rem; margin: 2.5rem 0 0.75rem; }
+  .sub { opacity: 0.65; margin: 0 0 2rem; }
+  .lede { font-size: 1.1rem; }
+  code { background: #f0eeec; padding: 0.1em 0.35em; border-radius: 3px; font-size: 0.9em; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { text-align: left; padding: 0.55rem 0.6rem; vertical-align: top; }
+  th { border-bottom: 2px solid #d8d5d2; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { border-bottom: 1px solid #eceae8; }
+  .rule { height: 1px; background: #eceae8; border: 0; margin: 3rem 0; }
+  footer { opacity: 0.6; font-size: 0.9rem; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+
+<h1>Dopamine Ratt — Privacy Policy</h1>
+<p class="sub">Last updated 23 August 2026</p>
+
+<p class="lede">Dopamine Ratt collects nothing, sends nothing, and cannot reach the
+internet. This page explains what that means in detail, and how you can check it
+for yourself rather than take our word for it.</p>
+
+<h2>Data we collect</h2>
+
+<p>None. The app has no accounts, no sign-in, no analytics, no crash reporting,
+no advertising and no third-party SDKs of any kind.</p>
+
+<p>The app does not request the <code>android.permission.INTERNET</code>
+permission. On Android, an app without that permission is placed outside the
+networking group by the operating system, so it cannot open a network connection
+at all. This is enforced by the system, not by our code: even a bug or a
+misbehaving library could not transmit anything.</p>
+
+<h2>What the app stores, and where</h2>
+
+<table>
+  <tr><th>What</th><th>Where</th><th>Leaves the device?</th></tr>
+  <tr>
+    <td>Your list of watched apps</td>
+    <td>Private app storage on your phone (<code>SharedPreferences</code>)</td>
+    <td>No</td>
+  </tr>
+  <tr>
+    <td>An optional image you supply as the sign artwork</td>
+    <td>The app's own folder, only if you place a file there yourself</td>
+    <td>No</td>
+  </tr>
+</table>
+
+<p>Automatic backup is switched off (<code>allowBackup="false"</code>), and the
+app's data-extraction rules exclude its files from Google cloud backup and from
+device-to-device transfer. Your watchlist does not travel to a new phone or into
+any backup. Uninstalling the app deletes all of it.</p>
+
+<h2>The accessibility service</h2>
+
+<p>Dopamine Ratt works by noticing when a watched app comes to the foreground, so
+it can show the interruption screen first. Android exposes that through an
+accessibility service, which is why the app asks you to enable one.</p>
+
+<p>The service is declared with
+<code>canRetrieveWindowContent="false"</code>. It therefore <strong>cannot read
+the contents of your screen</strong>: not text, not messages, not passwords, not
+what you type, not what you browse. It receives window-change events and reads a
+single field from them, the package name of the app that just came to the front,
+for example <code>com.instagram.android</code>. If that package is on the list you
+chose, the app shows its own screen. That is the entire mechanism.</p>
+
+<p>Nothing about which apps you open, or when, is recorded, stored or timed. The
+package name is compared against your list and discarded.</p>
+
+<h2>Permissions</h2>
+
+<table>
+  <tr><th>Permission</th><th>Why</th></tr>
+  <tr><td><code>VIBRATE</code></td><td>A short haptic knock when the interruption screen appears</td></tr>
+  <tr><td>Accessibility service</td><td>To notice which app came to the foreground, as described above</td></tr>
+</table>
+
+<p>The app requests no other permissions. It has no access to your contacts,
+location, camera, microphone, files, call logs, messages or accounts.</p>
+
+<h2>Children</h2>
+
+<p>The app is not directed at children and collects no personal information from
+anyone, regardless of age.</p>
+
+<h2>Verifying this yourself</h2>
+
+<p>The complete source is published at
+<a href="https://github.com/mayilian/dopamine-ratt">github.com/mayilian/dopamine-ratt</a>.
+You can build it yourself and compare the result with the published release. You
+can also inspect any release directly: the permission list in the APK shows that
+<code>INTERNET</code> is absent, and searching the compiled code turns up no
+networking classes and no server addresses.</p>
+
+<h2>Changes to this policy</h2>
+
+<p>If a future version of the app ever changes what it can access, this page will
+be updated before that version is published, and the date at the top will change.</p>
+
+<h2>Contact</h2>
+
+<p>Questions about this policy, or about the app's handling of data, can be raised
+at <a href="https://github.com/mayilian/dopamine-ratt/issues">the project's issue
+tracker</a>, or by email to <strong>YOUR-CONTACT-EMAIL-HERE</strong>.</p>
+
+<hr class="rule">
+
+<footer>Dopamine Ratt is free software published as source. It is not affiliated
+with Instagram, TikTok, Meta, ByteDance, Google, or any other company whose apps
+it can be configured to interrupt.</footer>
+
+</body>
+</html>
