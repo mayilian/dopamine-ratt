@@ -70,7 +70,11 @@ fun OnboardingScreen(
             lineHeight = 23.sp,
         )
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(26.dp))
+
+        Disclosure()
+
+        Spacer(Modifier.height(26.dp))
 
         LookFor()
 
@@ -106,6 +110,43 @@ fun OnboardingScreen(
         Action(label = "OPEN APP INFO", emphasis = false, onClick = onOpenAppInfo)
 
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+/**
+ * What the accessibility service is for, said before it is switched on rather
+ * than after.
+ *
+ * Handing an app an accessibility service is the largest thing a person is
+ * asked to do here, and they should be told what it reads before they do it,
+ * not left to find it in a policy afterwards. Play requires the disclosure to
+ * be in the app and ahead of the grant, which is also simply the right place
+ * for it.
+ */
+@Composable
+private fun Disclosure() {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "WHY IT NEEDS ACCESSIBILITY",
+            color = Faint,
+            fontFamily = Mono,
+            fontSize = 10.sp,
+            letterSpacing = 2.5.sp,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = "Dopamine Ratt uses Android's accessibility service to see which app has come to the front, so it can get there before you do.",
+            color = Muted,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = "It reads one thing: the name of the app in front. Never the contents of your screen. Nothing is collected, and nothing leaves your phone.",
+            color = Muted,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+        )
     }
 }
 
