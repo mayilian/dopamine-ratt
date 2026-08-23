@@ -1,26 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Two jobs, and they need different things.
+    We only need to know which app just came to the front, so window content
+    retrieval stays off. The service reads event.packageName and nothing else.
 
-    Knowing which app came to the front needs the package name on the event and
-    nothing more. Knowing that Instagram has landed on Reels means reading view
-    ids out of the window, which needs canRetrieveWindowContent. It is declared
-    here because a capability cannot be granted later, but the content events
-    that make it usable are only subscribed to while a surface is armed, and the
-    service reads view ids only, never the text on them.
+    That is a privacy line, and it is also what keeps the app installable by
+    hand. With it off, Android offers a plain switch in the accessibility list
+    and Play Protect lets the APK through. Turn it on and the same switch
+    becomes "allow this app to have full control of your device", because a
+    service that can read the screen can read all of it, and Play Protect starts
+    warning about the developer at install time. Measured both ways on the same
+    phone with the same signing key, and the flag is the only difference.
 
-    Declaring it does make the consent dialog say this app can see your screen,
-    which is fair enough: while a surface is armed, it looks at the shape of the
-    screen in one app you chose.
+    Telling one screen inside an app from another, Reels from the rest of
+    Instagram, needs that capability. That is what it would cost.
 
     packageNames is deliberately not set: we need events from other apps too,
     otherwise we cannot tell "entered Instagram from elsewhere" apart from
     "already scrolling inside Instagram".
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagDefault"
-    android:canRetrieveWindowContent="true"
+    android:canRetrieveWindowContent="false"
     android:notificationTimeout="150"
     android:description="@string/service_description" />

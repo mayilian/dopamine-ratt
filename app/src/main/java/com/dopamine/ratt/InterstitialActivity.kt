@@ -60,7 +60,7 @@ private const val ABANDON_MILLIS = 45_000L
 
 class InterstitialActivity : ComponentActivity() {
 
-    /** Which watched app, or which surface of one, put us here. */
+    /** Which watched app put us here, so the right pass gets opened. */
     private val triggeredBy: String?
         get() = intent?.getStringExtra(RattAccessibilityService.EXTRA_PACKAGE)
 
@@ -72,11 +72,7 @@ class InterstitialActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             RattTheme {
-                InterstitialScreen(
-                    surface = triggeredBy?.let { Surfaces.byKey(it)?.label },
-                    onLeave = ::leave,
-                    onContinue = ::goThrough,
-                )
+                InterstitialScreen(onLeave = ::leave, onContinue = ::goThrough)
             }
         }
     }
@@ -106,7 +102,6 @@ class InterstitialActivity : ComponentActivity() {
 
 @Composable
 private fun InterstitialScreen(
-    surface: String?,
     onLeave: () -> Unit,
     onContinue: () -> Unit,
 ) {
@@ -145,19 +140,6 @@ private fun InterstitialScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.weight(1f))
-
-            // Named only when it was a surface rather than the whole app, so the
-            // stop does not look like it fired at random halfway through a session.
-            if (surface != null) {
-                Text(
-                    text = surface,
-                    color = Bone.copy(alpha = 0.8f),
-                    fontFamily = Mono,
-                    fontSize = 11.sp,
-                    letterSpacing = 5.sp,
-                )
-                Spacer(Modifier.height(22.dp))
-            }
 
             // The hold, as a line rather than a word.
             Box(

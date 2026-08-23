@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">Dopamine Ratt</string>
     <string name="service_label">Dopamine Ratt</string>
-    <string name="service_description">Notices when you open a watched app and shows you a rat with a placard before you get in. It reads the package name of the app in front. If you switch on Reels or Stories, it also reads the view ids inside that one app to tell those screens apart, and never the text on your screen. Nothing leaves your phone.</string>
+    <string name="service_description">Notices when you open a watched app and shows you a rat with a placard before you get in. It reads only the package name of the app in front, never the contents of your screen. Nothing leaves your phone.</string>
 </resources>
