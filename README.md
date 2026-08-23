@@ -25,10 +25,15 @@ Three steps, and the third one is the part everyone gets stuck on:
    Dopamine Ratt in the accessibility list. Then **CHOOSE APPS** and tick what
    you want interrupted.
 
-Steps 2 and 3 are the app's opening screen, one at a time, and there is no way
-past them: everything else is switches that do nothing without the service. The
-service step notices the switch being thrown and moves on by itself. Tap
-**PREVIEW** any time to see the screen without waiting to be caught.
+Step 3 is the app's opening screen and there is no way past it: everything else
+is switches that do nothing without the service. It notices the switch being
+thrown and lets you through by itself, and it carries the unlock from step 2 as
+a footnote for when the switch will not move. Tap **PREVIEW** any time to see
+the screen without waiting to be caught.
+
+Both of the hurdles above come from installing an APK by hand rather than from
+a store. Install over `adb` and neither appears, which is worth knowing before
+concluding that a build is broken.
 
 ## Getting in
 
@@ -40,23 +45,36 @@ interrupted, every time.
 **ENTER** is the only way through. Backing out, letting the screen time out, or
 pressing home all leave you where you started.
 
+## Reels and Stories
+
+Instagram can be stopped at Reels or at Stories without stopping the rest of it.
+Both are off until you turn them on, in the picker, under Instagram.
+
+They work whether or not Instagram itself is ticked. Untick Instagram and leave
+Reels on, and messages and posts are left alone while the feed of clips is not.
+An app with a surface armed stays at the top of the picker so you can find the
+switch again.
+
 ## What it does with your data
 
 Nothing leaves the phone. There is no network code in this app at all.
 
-The accessibility service is declared with `canRetrieveWindowContent="false"`,
-so it cannot read what is on your screen. It receives window-change events and
-looks at one field, the package name of the app that just came to the front. If
-that package is on your list it launches the interstitial. That is the whole
-mechanism.
+For the watchlist, the service receives window-change events and looks at one
+field, the package name of the app that just came to the front. If that package
+is on your list it launches the interstitial.
 
-That line is also what keeps the app installable. v0.2 briefly turned the
-capability on so it could tell Reels and Stories apart from the rest of
-Instagram, and Play Protect silently uninstalled the app within a minute of
-every install: a sideloaded app whose accessibility service can read the screen
-is the shape of a banking trojan, and it is treated as one. Watching one screen
-inside an app cannot be done without that capability, so this app does not do
-it.
+Reels and Stories need more than that, and it is worth being plain about it. The
+service is declared with `canRetrieveWindowContent="true"`, because a capability
+cannot be asked for later. What it does with it is narrow:
+
+- The events and flags that let it look are only asked for while Reels or
+  Stories is armed, and handed back when you switch the last one off. Until
+  then the service sees package names and nothing else.
+- It reads `viewIdResourceName`, the developer's name for a container, and never
+  the text inside one. It is looking for `clips_viewer` and `reel_viewer`, which
+  are Instagram's internal names for those two screens.
+- The walk stops after 400 nodes, runs at most twice a second, ignores anything
+  off screen, and only runs at all in an app with a surface armed.
 
 Your watchlist lives in `SharedPreferences` on the device.
 
@@ -96,8 +114,9 @@ simply unsigned. The keystore and its properties are gitignored on purpose.
 
 | File | What it does |
 |---|---|
-| `RattAccessibilityService.kt` | Reads foreground package names, fires the interstitial |
-| `Watchlist.kt` | Which apps are watched, stored in prefs |
+| `RattAccessibilityService.kt` | Reads foreground package names, spots armed surfaces, fires the interstitial |
+| `Watchlist.kt` | Which apps and surfaces are watched, stored in prefs |
+| `Surfaces.kt` | Reels and Stories, and how they are recognised |
 | `Gate.kt` | The one visit that ENTER buys, and nothing more |
 | `InterstitialActivity.kt` | The screen, the hold, the two ways out |
 | `NeonSign.kt` | The wash, the sign, breathing, pulse rings, glitch, embers |
@@ -119,9 +138,10 @@ reach you. It interrupts the reach, not the scrolling.
 It also only sees entries through the normal app-switch path. Notification taps
 and share sheets can land you somewhere without a window change it recognises.
 
-An app is one thing to it, so ticking Instagram catches the messages along with
-the feed. Telling Reels apart from the rest of Instagram needs the capability
-Play Protect removes the app for, so it is all or nothing per app.
+Reels and Stories are recognised by names Instagram chose for its own use and
+can rename whenever it likes. If a release moves them, that stops working until
+the markers in `Surfaces.kt` are updated. The rest of the app does not depend on
+it.
 
 And the usual caveat for this whole category: novelty wears off in about two
 weeks. Interrupting the reflex is the easy half.

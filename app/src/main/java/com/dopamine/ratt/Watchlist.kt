@@ -10,6 +10,7 @@ object Watchlist {
 
     private const val FILE = "ratt"
     private const val KEY = "watched"
+    private const val KEY_SURFACES = "surfaces"
 
     /** Pre-ticked on first run if installed, so the app does something out of the box. */
     val SUGGESTED = listOf(
@@ -58,6 +59,37 @@ object Watchlist {
         val current = get(context)
         val next = if (packageName in current) current - packageName else current + packageName
         set(context, next)
+        return next
+    }
+
+    /**
+     * Which surfaces are armed. Kept separate from the watchlist: watching
+     * Reels and watching Instagram are different requests, and either one works
+     * without the other.
+     *
+     * Never seeded. Watching inside an app costs more than watching for it, so
+     * it stays off until it is asked for.
+     */
+    @Volatile
+    private var cachedSurfaces: Set<String>? = null
+
+    fun surfaces(context: Context): Set<String> {
+        cachedSurfaces?.let { return it }
+        val loaded = prefs(context).getStringSet(KEY_SURFACES, emptySet()).orEmpty().toSet()
+        cachedSurfaces = loaded
+        return loaded
+    }
+
+    fun setSurfaces(context: Context, keys: Set<String>) {
+        val next = keys.toSet()
+        prefs(context).edit().putStringSet(KEY_SURFACES, next).apply()
+        cachedSurfaces = next
+    }
+
+    fun toggleSurface(context: Context, key: String): Set<String> {
+        val current = surfaces(context)
+        val next = if (key in current) current - key else current + key
+        setSurfaces(context, next)
         return next
     }
 
