@@ -43,19 +43,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dopamine.ratt.ui.Bone
 import com.dopamine.ratt.ui.Ember
-import com.dopamine.ratt.ui.Faint
 import com.dopamine.ratt.ui.Ink
 import com.dopamine.ratt.ui.Mono
 import com.dopamine.ratt.ui.RattTheme
+import kotlinx.coroutines.delay
 import android.graphics.Color as AndroidColor
 
 /** How long the user is held before the way through is offered. */
 private const val HOLD_MILLIS = 4000
 
-/** How long the target app is left alone after the user decides to go in. */
-private const val PASS_MILLIS = 20_000L
+/**
+ * If nobody touches anything, stop burning the display on a glowing sign and
+ * send them home. Without this the animations run until the screen times out.
+ */
+private const val ABANDON_MILLIS = 45_000L
 
 class InterstitialActivity : ComponentActivity() {
+
+    /** Which watched app, or which surface of one, put us here. */
+    private val triggeredBy: String?
+        get() = intent?.getStringExtra(RattAccessibilityService.EXTRA_PACKAGE)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
@@ -65,13 +72,23 @@ class InterstitialActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             RattTheme {
-                InterstitialScreen(onLeave = ::leave, onContinue = ::goThrough)
+                InterstitialScreen(
+                    surface = triggeredBy?.let { Surfaces.byKey(it)?.label },
+                    onLeave = ::leave,
+                    onContinue = ::goThrough,
+                )
             }
         }
     }
 
+    /**
+     * Backing out, or walking away and letting it time out. Neither is a way in:
+     * the pass is dropped, and the service is told to forget what was in front
+     * so that coming back here counts as a fresh arrival and gets stopped again.
+     */
     private fun leave() {
         Gate.close()
+        RattAccessibilityService.forgetForeground()
         startActivity(
             Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_HOME)
@@ -80,14 +97,16 @@ class InterstitialActivity : ComponentActivity() {
         finish()
     }
 
+    /** The only thing in the app that opens a pass, and it lasts one visit. */
     private fun goThrough() {
-        Gate.openFor(PASS_MILLIS)
+        triggeredBy?.let { Gate.open(it) }
         finish()
     }
 }
 
 @Composable
 private fun InterstitialScreen(
+    surface: String?,
     onLeave: () -> Unit,
     onContinue: () -> Unit,
 ) {
@@ -100,6 +119,10 @@ private fun InterstitialScreen(
     LaunchedEffect(Unit) {
         hold.animateTo(1f, tween(HOLD_MILLIS, easing = FastOutSlowInEasing))
         unlocked = true
+    }
+    LaunchedEffect(Unit) {
+        delay(ABANDON_MILLIS)
+        onLeave()
     }
 
     val revealAlpha by animateFloatAsState(
@@ -122,6 +145,19 @@ private fun InterstitialScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.weight(1f))
+
+            // Named only when it was a surface rather than the whole app, so the
+            // stop does not look like it fired at random halfway through a session.
+            if (surface != null) {
+                Text(
+                    text = surface,
+                    color = Bone.copy(alpha = 0.8f),
+                    fontFamily = Mono,
+                    fontSize = 11.sp,
+                    letterSpacing = 5.sp,
+                )
+                Spacer(Modifier.height(22.dp))
+            }
 
             // The hold, as a line rather than a word.
             Box(
@@ -147,7 +183,7 @@ private fun InterstitialScreen(
             ) {
                 Tap(
                     label = "BACK",
-                    color = Bone,
+                    color = Bone.copy(alpha = 0.72f),
                     onClick = onLeave,
                 )
 
@@ -160,9 +196,11 @@ private fun InterstitialScreen(
                 )
                 Spacer(Modifier.width(28.dp))
 
+                // Bright rather than dim: it is hidden until the hold is over,
+                // and once it is offered it has to be readable against the wash.
                 Tap(
                     label = "ENTER",
-                    color = Faint,
+                    color = Bone,
                     enabled = unlocked,
                     modifier = Modifier.graphicsLayer { alpha = revealAlpha },
                     onClick = onContinue,

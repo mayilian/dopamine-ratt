@@ -3,6 +3,7 @@ package com.dopamine.ratt
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -73,13 +74,53 @@ class SetupActivity : ComponentActivity() {
         setContent {
             RattTheme {
                 var picking by remember { mutableStateOf(false) }
-                if (picking) {
-                    BackHandler { picking = false }
-                    PickerScreen(onDone = { picking = false })
-                } else {
-                    SetupScreen(resumeTick.intValue, onPick = { picking = true })
+
+                // Re-read on every resume, so coming back from settings with the
+                // service switched on is what opens the app up.
+                val tick = resumeTick.intValue
+                val serviceOn = remember(tick) { isServiceEnabled(this) }
+
+                when {
+                    picking -> {
+                        val leavePicker = {
+                            Apps.clear()
+                            picking = false
+                        }
+                        BackHandler { leavePicker() }
+                        PickerScreen(onDone = leavePicker)
+                    }
+
+                    // Nothing in here works without the service, so nothing in
+                    // here is reachable until it is on.
+                    !serviceOn -> OnboardingScreen(
+                        onOpenAppInfo = ::openAppInfo,
+                        onOpenAccessibility = ::openAccessibilitySettings,
+                    )
+
+                    else -> SetupScreen(tick, onPick = { picking = true })
                 }
             }
+        }
+    }
+
+    private fun openAccessibilitySettings() {
+        runCatching {
+            startActivity(
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
+    }
+
+    /** Where "Allow restricted settings" lives, which is the step everyone trips on. */
+    private fun openAppInfo() {
+        runCatching {
+            startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", packageName, null),
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
         }
     }
 
@@ -96,12 +137,16 @@ private fun SetupScreen(resumeTick: Int, onPick: () -> Unit) {
     // resumeTick is read so the checks re-run when the user returns from settings.
     val serviceOn = remember(resumeTick) { isServiceEnabled(context) }
     val watched = remember(resumeTick) { Watchlist.get(context) }
+    val armed = remember(resumeTick) { Watchlist.surfaces(context) }
 
     var watchedLabels by remember { mutableStateOf(emptyList<String>()) }
     LaunchedEffect(resumeTick) {
         watchedLabels = Apps.load(context)
             .filter { it.packageName in watched }
-            .map { it.label }
+            .map { it.label } +
+            Surfaces.ALL
+                .filter { it.key in armed }
+                .map { surface -> surface.label.lowercase().replaceFirstChar { it.uppercase() } }
     }
 
     Column(
@@ -146,12 +191,15 @@ private fun SetupScreen(resumeTick: Int, onPick: () -> Unit) {
             label = if (serviceOn) "SERVICE RUNNING" else "SERVICE OFF",
         )
         Spacer(Modifier.height(12.dp))
+        // Surfaces count the same as apps here: Reels on its own is a thing to
+        // be watching, and reporting "nothing selected" while it is armed lies.
+        val targets = watched.size + armed.size
         StatusRow(
-            ok = watched.isNotEmpty(),
-            label = when (watched.size) {
-                0 -> "NO APPS SELECTED"
-                1 -> "1 APP WATCHED"
-                else -> "${watched.size} APPS WATCHED"
+            ok = targets > 0,
+            label = when (targets) {
+                0 -> "NOTHING SELECTED"
+                1 -> "1 WATCHED"
+                else -> "$targets WATCHED"
             },
         )
 
@@ -168,16 +216,6 @@ private fun SetupScreen(resumeTick: Int, onPick: () -> Unit) {
         }
 
         Spacer(Modifier.height(34.dp))
-
-        if (!serviceOn) {
-            Text(
-                text = "Turn on the accessibility service so the app can tell which app just came to the front. It reads the package name only, never what is on your screen.",
-                color = Faint,
-                fontSize = 13.sp,
-                lineHeight = 19.sp,
-            )
-            Spacer(Modifier.height(18.dp))
-        }
 
         Action(
             label = if (serviceOn) "ACCESSIBILITY SETTINGS" else "TURN IT ON",
@@ -214,6 +252,7 @@ private fun PickerScreen(onDone: () -> Unit) {
 
     var apps by remember { mutableStateOf(emptyList<AppEntry>()) }
     var watched by remember { mutableStateOf(Watchlist.get(context)) }
+    var surfaces by remember { mutableStateOf(Watchlist.surfaces(context)) }
     var query by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
@@ -230,8 +269,15 @@ private fun PickerScreen(onDone: () -> Unit) {
 
     // Watched apps float to the top so the current selection is always visible
     // without scrolling for it.
-    val selected = visible.filter { it.packageName in watched }
-    val rest = visible.filter { it.packageName !in watched }
+    //
+    // An app with a surface armed stays up here even when the app itself is
+    // unticked. Watching Reels and not watching Instagram is a real setting,
+    // and the row is the only place to switch it back off.
+    fun AppEntry.inPlay() =
+        packageName in watched || Surfaces.of(packageName).any { it.key in surfaces }
+
+    val selected = visible.filter { it.inPlay() }
+    val rest = visible.filter { !it.inPlay() }
 
     Column(
         modifier = Modifier
@@ -297,18 +343,27 @@ private fun PickerScreen(onDone: () -> Unit) {
             if (selected.isNotEmpty()) {
                 item(key = "head-watched") {
                     SectionHead(
-                        label = "WATCHED · ${selected.size}",
+                        // What is switched on, not how many rows are up here.
+                        label = "WATCHED · ${watched.size + surfaces.size}",
                         action = "CLEAR ALL",
                         onAction = {
                             Watchlist.set(context, emptySet())
+                            Watchlist.setSurfaces(context, emptySet())
                             watched = emptySet()
+                            surfaces = emptySet()
                         },
                     )
                 }
                 items(items = selected, key = { "on-" + it.packageName }) { entry ->
-                    PickerRow(entry = entry, on = true) {
-                        watched = Watchlist.toggle(context, entry.packageName)
-                    }
+                    AppBlock(
+                        entry = entry,
+                        // Not everything up here is ticked: an app stays in this
+                        // section while one of its surfaces is armed.
+                        on = entry.packageName in watched,
+                        armed = surfaces,
+                        onToggle = { watched = Watchlist.toggle(context, entry.packageName) },
+                        onToggleSurface = { surfaces = Watchlist.toggleSurface(context, it) },
+                    )
                 }
             }
 
@@ -317,9 +372,13 @@ private fun PickerScreen(onDone: () -> Unit) {
                     SectionHead(label = "ALL APPS", action = null, onAction = {})
                 }
                 items(items = rest, key = { "off-" + it.packageName }) { entry ->
-                    PickerRow(entry = entry, on = false) {
-                        watched = Watchlist.toggle(context, entry.packageName)
-                    }
+                    AppBlock(
+                        entry = entry,
+                        on = false,
+                        armed = surfaces,
+                        onToggle = { watched = Watchlist.toggle(context, entry.packageName) },
+                        onToggleSurface = { surfaces = Watchlist.toggleSurface(context, it) },
+                    )
                 }
             }
         }
@@ -359,8 +418,93 @@ private fun SectionHead(label: String, action: String?, onAction: () -> Unit) {
     }
 }
 
+/**
+ * An app, and under it the surfaces inside that app that can be stopped on
+ * their own.
+ *
+ * The two are independent on purpose: stopping Reels without stopping the rest
+ * of Instagram is the whole point, and it reads better as a sub-row of the app
+ * than as an app of its own.
+ */
 @Composable
-private fun PickerRow(entry: AppEntry, on: Boolean, onToggle: () -> Unit) {
+private fun AppBlock(
+    entry: AppEntry,
+    on: Boolean,
+    armed: Set<String>,
+    onToggle: () -> Unit,
+    onToggleSurface: (String) -> Unit,
+) {
+    val surfaces = remember(entry.packageName) { Surfaces.of(entry.packageName) }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        PickerRow(entry = entry, on = on, onToggle = onToggle)
+
+        for (surface in surfaces) {
+            SurfaceRow(
+                label = surface.label,
+                on = surface.key in armed,
+                onToggle = { onToggleSurface(surface.key) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SurfaceRow(
+    label: String,
+    on: Boolean,
+    onToggle: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onToggle,
+            )
+            .padding(start = 48.dp, bottom = 9.dp),
+    ) {
+        Box(
+            Modifier
+                .width(14.dp)
+                .height(1.dp)
+                .background(Bone.copy(alpha = if (on) 0.4f else 0.16f)),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = label,
+            color = if (on) Bone else Muted,
+            fontFamily = Mono,
+            fontSize = 11.sp,
+            letterSpacing = 2.sp,
+            modifier = Modifier.weight(1f),
+        )
+
+        Box(
+            modifier = Modifier
+                .size(13.dp)
+                .border(
+                    width = 1.dp,
+                    color = if (on) Ember else Bone.copy(alpha = 0.25f),
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (on) {
+                Box(Modifier.size(6.dp).background(Ember, CircleShape))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PickerRow(
+    entry: AppEntry,
+    on: Boolean,
+    onToggle: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -384,6 +528,7 @@ private fun PickerRow(entry: AppEntry, on: Boolean, onToggle: () -> Unit) {
             fontSize = 16.sp,
             modifier = Modifier.weight(1f),
         )
+
         Box(
             modifier = Modifier
                 .size(16.dp)
@@ -402,7 +547,7 @@ private fun PickerRow(entry: AppEntry, on: Boolean, onToggle: () -> Unit) {
 }
 
 @Composable
-private fun Action(label: String, emphasis: Boolean, onClick: () -> Unit) {
+internal fun Action(label: String, emphasis: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -426,7 +571,7 @@ private fun Action(label: String, emphasis: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StatusRow(ok: Boolean, label: String) {
+internal fun StatusRow(ok: Boolean, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Spacer(
             Modifier

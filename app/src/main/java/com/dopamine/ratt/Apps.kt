@@ -48,6 +48,15 @@ object Apps {
         entries
     }
 
+    /**
+     * Icon bitmaps for every installed app run to several megabytes, and this
+     * process also hosts the long-lived accessibility service. Dropped as soon
+     * as the picker closes rather than held for the life of the process.
+     */
+    fun clear() {
+        cache = null
+    }
+
     private fun Drawable.toImageBitmap(): ImageBitmap {
         val bitmap = Bitmap.createBitmap(ICON_PX, ICON_PX, Bitmap.Config.ARGB_8888)
         setBounds(0, 0, ICON_PX, ICON_PX)

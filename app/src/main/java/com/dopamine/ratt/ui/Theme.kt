@@ -8,11 +8,17 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import com.dopamine.ratt.R
 
-/** Near black with a violet bias, so the edge glow has something to sit in. */
+/**
+ * Near black with a violet bias, so the edge glow has something to sit in.
+ *
+ * The three greys are steps down in emphasis, not steps down into the
+ * background: against Ink they run 17:1, 7.9:1 and 5.7:1, so the dimmest label
+ * in the app still clears the 4.5:1 that body text is held to.
+ */
 val Ink = Color(0xFF08070A)
 val Bone = Color(0xFFF2EEE9)
-val Muted = Color(0xFF7E7A85)
-val Faint = Color(0xFF4A4652)
+val Muted = Color(0xFFA5A1AC)
+val Faint = Color(0xFF8A8694)
 
 /** Mystic. */
 val Violet = Color(0xFF7B2CFF)
