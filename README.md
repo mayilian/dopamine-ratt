@@ -1,5 +1,13 @@
 # Dopamine Ratt
 
+<p align="center">
+  <img src="docs/hero.svg" alt="The Dopamine Ratt sign: a rat holding a DOPAMINE RATTT!! placard, breathing and pulsing on a red neon wash" width="720">
+</p>
+
+<p align="center">
+  <a href="https://play.google.com/store/apps/details?id=com.dopamine.ratt"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"></a>
+</p>
+
 Open a watched app and this gets there first: a neon interstitial, a haptic knock,
 and four seconds you have to sit through before the way in appears.
 
@@ -7,6 +15,14 @@ An Android take on the one-sec idea. Pick the apps that eat your day, and every
 time you reach for one you get interrupted by a glowing sign instead.
 
 ## Install
+
+Get it from [Google Play](https://play.google.com/store/apps/details?id=com.dopamine.ratt),
+open it, read what the accessibility service is for and tap **ACCEPT**, then
+**TURN IT ON** and enable Dopamine Ratt in the accessibility list, then
+**CHOOSE APPS**. Installed from Play, Android does not lock the switch, so
+there is no restricted-settings step to get through.
+
+### Or sideload the APK
 
 Grab the APK from [Releases](../../releases/latest) and open it on your phone.
 
@@ -21,15 +37,17 @@ Three steps, and the third one is the part everyone gets stuck on:
    **Settings → Apps → Dopamine Ratt → ⋮ (top right) → Allow restricted settings**.
    Skip this and the next step is greyed out and the app looks broken.
 
-3. **Turn on the service.** Open the app, tap **TURN IT ON**, and enable
-   Dopamine Ratt in the accessibility list. Then **CHOOSE APPS** and tick what
-   you want interrupted.
+3. **Turn on the service.** Open the app, tap **ACCEPT** on the disclosure,
+   then **TURN IT ON**, and enable Dopamine Ratt in the accessibility list.
+   Then **CHOOSE APPS** and tick what you want interrupted.
 
-Step 3 is the app's opening screen and there is no way past it: everything else
-is switches that do nothing without the service. It notices the switch being
-thrown and lets you through by itself, and it carries the unlock from step 2 as
-a footnote for when the switch will not move. Tap **PREVIEW** any time to see
-the screen without waiting to be caught.
+The app opens on a disclosure saying what the service reads, with **ACCEPT**
+and **DECLINE**. Declining closes the app; accepting is remembered, so it is
+only asked once. After that the opening screen is the switch, and there is no
+way past it: everything else is switches that do nothing without the service.
+It notices the switch being thrown and lets you through by itself, and it
+carries the unlock from step 2 as a footnote for when the switch will not move.
+Tap **PREVIEW** any time to see the screen without waiting to be caught.
 
 ## Getting in
 
