@@ -15,8 +15,8 @@ android {
         applicationId = "com.dopamine.ratt"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.8"
+        versionCode = 13
+        versionName = "0.9.1"
     }
 
     buildFeatures {

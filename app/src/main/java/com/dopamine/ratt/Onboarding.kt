@@ -1,8 +1,12 @@
 package com.dopamine.ratt
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,12 +14,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dopamine.ratt.ui.Bone
@@ -29,18 +41,201 @@ import com.dopamine.ratt.ui.Muted
 /**
  * What stands in front of the app until the accessibility service is on.
  *
- * There is no way past it, on purpose. Everything else in here is switches that
- * do nothing without the service, and an app that looks configured but never
- * interrupts anything is worse than one that plainly says it is not ready yet.
+ * Two screens rather than one. The first asks you to hand an app an
+ * accessibility service and says plainly what that gets it; the second is the
+ * mechanical business of finding a switch in a system list. Those are different
+ * jobs, and running them together — which is what this used to do — meant the
+ * disclosure was something you read past on the way to the button.
+ *
+ * Play wants the disclosure accepted rather than merely shown: a deliberate
+ * action, in the app, ahead of the grant. Splitting the screens is what gives it
+ * one, and it is the lighter screen either way.
  *
  * It is not a first run flow: it is shown whenever the service is off, so
  * switching the service off later brings it back rather than leaving a screen of
- * dead controls.
+ * dead controls. The acceptance is remembered though, so coming back lands on
+ * the switch instructions instead of on the disclosure a second time.
  */
 @Composable
 fun OnboardingScreen(
     onOpenAppInfo: () -> Unit,
     onOpenAccessibility: () -> Unit,
+    onDecline: () -> Unit,
+) {
+    val context = LocalContext.current
+    var showingDisclosure by remember { mutableStateOf(!Consent.accepted(context)) }
+
+    if (showingDisclosure) {
+        DisclosureScreen(
+            onAccept = {
+                Consent.accept(context)
+                showingDisclosure = false
+            },
+            onDecline = onDecline,
+        )
+    } else {
+        SwitchOnScreen(
+            onOpenAppInfo = onOpenAppInfo,
+            onOpenAccessibility = onOpenAccessibility,
+            onReread = { showingDisclosure = true },
+        )
+    }
+}
+
+/**
+ * What the accessibility service is for, said before it is switched on rather
+ * than after.
+ *
+ * Handing an app an accessibility service is the largest thing a person is asked
+ * to do here, and they should be told what it reads before they do it, not left
+ * to find it in a policy afterwards.
+ *
+ * The three lines at the bottom are the ones worth being specific about. "No
+ * network access" in particular is not a promise about conduct, it is a fact
+ * about the manifest: the app never asks for the internet permission, so the
+ * claim can be checked against the permission list on the store page rather than
+ * taken on trust.
+ */
+@Composable
+private fun DisclosureScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
+    // Back must never read as agreement, so it lands on the same refusal the
+    // DECLINE button does rather than falling through to the screen behind.
+    BackHandler(onBack = onDecline)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Ink)
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 26.dp, vertical = 22.dp),
+    ) {
+        Spacer(Modifier.height(36.dp))
+
+        Text(
+            text = "ACCESSIBILITY",
+            color = Bone,
+            fontFamily = Display,
+            fontSize = 50.sp,
+            lineHeight = 46.sp,
+            letterSpacing = 2.sp,
+        )
+        Text(
+            text = "PERMISSION",
+            color = Ember,
+            fontFamily = Display,
+            fontSize = 50.sp,
+            lineHeight = 46.sp,
+            letterSpacing = 2.sp,
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        Text(
+            text = "Dopamine Ratt uses Android's accessibility service to see which app has come to the front, so it can get there before you do.",
+            color = Muted,
+            fontSize = 15.sp,
+            lineHeight = 23.sp,
+        )
+
+        Spacer(Modifier.height(30.dp))
+
+        Text(
+            text = "WHAT IT READS",
+            color = Faint,
+            fontFamily = Mono,
+            fontSize = 10.sp,
+            letterSpacing = 2.5.sp,
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = "The name of the app in front. Never the contents of your screen, and never what you type.",
+            color = Muted,
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
+        )
+
+        Spacer(Modifier.height(28.dp))
+
+        Text(
+            text = "AND IT ALWAYS STAYS",
+            color = Faint,
+            fontFamily = Mono,
+            fontSize = 10.sp,
+            letterSpacing = 2.5.sp,
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Guarantee("PRIVATE", "No account, no analytics, no tracking.")
+        Spacer(Modifier.height(14.dp))
+        Guarantee("OFFLINE", "The app has no network access to send it over.")
+        Spacer(Modifier.height(14.dp))
+        Guarantee("ON-DEVICE", "Your watchlist is stored on this phone only.")
+
+        Spacer(Modifier.height(34.dp))
+
+        // Two buttons, not one. Play does not accept a single acknowledging
+        // button as consent: there has to be a refusal on screen, the same size
+        // and as easy to hit as the agreement, and it has to do something.
+        Action(label = "ACCEPT", emphasis = true, onClick = onAccept)
+
+        Spacer(Modifier.height(10.dp))
+
+        Action(label = "DECLINE", emphasis = false, onClick = onDecline)
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text = "Declining closes the app. Nothing is watched until you accept and turn the service on yourself.",
+            color = Faint,
+            fontSize = 13.sp,
+            lineHeight = 19.sp,
+        )
+
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+/** One promise, said in a word and then in a sentence, so the column scans first. */
+@Composable
+private fun Guarantee(label: String, line: String) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Spacer(
+            Modifier
+                .padding(top = 5.dp)
+                .size(7.dp)
+                .background(Ember, CircleShape)
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = label,
+                color = Bone,
+                fontFamily = Mono,
+                fontSize = 12.sp,
+                letterSpacing = 2.sp,
+            )
+            Spacer(Modifier.height(3.dp))
+            Text(
+                text = line,
+                color = Muted,
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+            )
+        }
+    }
+}
+
+/**
+ * The mechanical half: the switch is in a system list this app cannot reach into,
+ * so all that can be done is to name the row to look for and open the list.
+ */
+@Composable
+private fun SwitchOnScreen(
+    onOpenAppInfo: () -> Unit,
+    onOpenAccessibility: () -> Unit,
+    onReread: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -69,10 +264,6 @@ fun OnboardingScreen(
             fontSize = 15.sp,
             lineHeight = 23.sp,
         )
-
-        Spacer(Modifier.height(26.dp))
-
-        Disclosure()
 
         Spacer(Modifier.height(26.dp))
 
@@ -110,43 +301,26 @@ fun OnboardingScreen(
         Action(label = "OPEN APP INFO", emphasis = false, onClick = onOpenAppInfo)
 
         Spacer(Modifier.height(24.dp))
-    }
-}
 
-/**
- * What the accessibility service is for, said before it is switched on rather
- * than after.
- *
- * Handing an app an accessibility service is the largest thing a person is
- * asked to do here, and they should be told what it reads before they do it,
- * not left to find it in a policy afterwards. Play requires the disclosure to
- * be in the app and ahead of the grant, which is also simply the right place
- * for it.
- */
-@Composable
-private fun Disclosure() {
-    Column(modifier = Modifier.fillMaxWidth()) {
+        // The disclosure is a screen you pass through once. This is the way back
+        // to it, for anyone who wants to read it again without turning the
+        // service off to get there.
         Text(
-            text = "WHY IT NEEDS ACCESSIBILITY",
-            color = Faint,
+            text = "← WHAT IT READS",
+            color = Ember,
             fontFamily = Mono,
             fontSize = 10.sp,
             letterSpacing = 2.5.sp,
+            modifier = Modifier
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onReread,
+                )
+                .padding(vertical = 8.dp),
         )
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = "Dopamine Ratt uses Android's accessibility service to see which app has come to the front, so it can get there before you do.",
-            color = Muted,
-            fontSize = 14.sp,
-            lineHeight = 20.sp,
-        )
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = "It reads one thing: the name of the app in front. Never the contents of your screen. Nothing is collected, and nothing leaves your phone.",
-            color = Muted,
-            fontSize = 14.sp,
-            lineHeight = 20.sp,
-        )
+
+        Spacer(Modifier.height(16.dp))
     }
 }
 

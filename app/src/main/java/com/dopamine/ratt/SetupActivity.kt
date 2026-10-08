@@ -95,6 +95,11 @@ class SetupActivity : ComponentActivity() {
                     !serviceOn -> OnboardingScreen(
                         onOpenAppInfo = ::openAppInfo,
                         onOpenAccessibility = ::openAccessibilitySettings,
+                        // Refusing the disclosure has to cost something real,
+                        // or it is not a choice. There is nothing in this app
+                        // that works without the service, so the honest
+                        // consequence is to close.
+                        onDecline = ::finish,
                     )
 
                     else -> SetupScreen(tick, onPick = { picking = true })
